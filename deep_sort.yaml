@@ -1,0 +1,9 @@
+DEEPSORT:
+  REID_CKPT: "deep_sort_pytorch/deep_sort/deep/checkpoint/ckpt.t7"
+  MAX_DIST: 0.27  # Increased for better ID retention
+  MIN_CONFIDENCE: 0.3  # Lowered to consider more detections
+  NMS_MAX_OVERLAP: 0.6  # Moderate overlap to balance precision and recall
+  MAX_IOU_DISTANCE: 0.7
+  MAX_AGE: 80  # Increased to keep tracks longer
+  N_INIT: 3
+  NN_BUDGET: 100
