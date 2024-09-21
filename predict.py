@@ -61,8 +61,8 @@ object_counter = {}
 
 object_counter1 = {}
 
-line1 = [(1253, 581), (226, 388)]
-line2 = [(1250, 600), (176, 397)]
+line1 = [(1100,500), (530, 380)]
+line2 = [(1126, 545), (420, 400)]
 boats_crossed_ids_line1 = set()
 boats_crossed_ids_line2 = set()
 def WarpImage_TPS(source, target):
@@ -93,27 +93,48 @@ def transform_single_point(tps, point):
     point = np.array([[point]], dtype=np.float32)
     _, transformed_point = tps.applyTransformation(point)
     return transformed_point[0, 0]
+def compute_homography(source, target):
+    homography_matrix, _ = cv2.findHomography(source, target)
+    return homography_matrix
+
+def transform_point(point, homography_matrix):
+    point = np.array([point[0], point[1], 1], dtype=np.float32).reshape(-1, 1)
+    transformed_point = np.dot(homography_matrix, point)
+    transformed_point /= transformed_point[2]
+    return transformed_point[:2].flatten()
 
 global tps
 
 Zp = np.array([
     [68, 423], [177, 406], [219, 397], [363, 370], [507, 344], [539, 342], [662, 324], [761,324], [799, 324], [850, 317],[884, 291],
-    [1109, 691], [1131, 679], [1160, 467], [1261, 368],[1252, 313], [1186, 472], [1263, 532], [1254, 517], [1205, 274], [1005, 277], [1190, 257]
+    [1109, 691], [1131, 679], [1160, 467], [1261, 368],[1252, 313], [1186, 472], [1263, 532], [1254, 517], [1205, 274], [1005, 277], 
+    [1190, 257], [695,780], [276, 543], [575,508], [794, 582], [360, 429], [974,343]
 ])  # (x, y) of source in each row
 Zs = np.array([
     [315,445], [354, 427], [370, 418], [425, 394], [504, 361], [519, 357], [606, 319], [657, 323],[667, 339], [718, 316],[865,192],  
-    [485,674], [499, 674], [566, 634], [755, 574], [1124, 415], [567, 642], [539, 678], [550, 672], [1504, 143], [1074, 130],[1786, 72]
+    [485,674], [499, 674], [566, 634], [755, 574], [1124, 415], [567, 642], [539, 678], [550, 672], [1504, 143], [1074, 130],
+    [1786, 72], [412, 686], [366, 565], [433, 545], [461, 615], [408, 483], [704, 438]
 ])
 new_pts1, new_pts2, tps = WarpImage_TPS(Zp, Zs)
 speed_line_queue = {}
+
+# Example coordinates in the original image
+src_points = np.array([[56, 421], [1100, 1005], [1331,372], [710, 320]], dtype=np.float32)
+# Example coordinates in the destination image (after transformation)
+dst_points = np.array([[313, 445], [429, 732], [766,584], [650,300]], dtype=np.float32)
+
+# Compute the homography matrix
+global homography_matrix
+homography_matrix = compute_homography(src_points, dst_points)
+
 def estimatespeed(Location1, Location2):
 
 
     Location1 = list(Location1)
     Location2 = list(Location2)
 
-    Location1 = transform_single_point(tps, Location1)
-    Location2 = transform_single_point(tps, Location2)
+    Location1 = transform_point(Location1, homography_matrix)
+    Location2 = transform_point(Location2, homography_matrix)
 
     #Euclidean Distance Formula
     d_pixel = math.sqrt(math.pow(Location2[0] - Location1[0], 2) + math.pow(Location2[1] - Location1[1], 2))
@@ -121,7 +142,7 @@ def estimatespeed(Location1, Location2):
     ppm = 4.787 # WILL VARY WITH EVERY VIDEO
     d_meters = d_pixel/ppm
 
-    time_constant = (30/300) *3.6 #30 FPS  and 300 is after how much frame the location and time is taken , 3.6 is used for converting it to km/h
+    time_constant = (30/90) *3.6 #30 FPS  and 300 is after how much frame the location and time is taken , 3.6 is used for converting it to km/h
     #distance = speed/time
 
     speed = d_meters * time_constant
@@ -312,9 +333,9 @@ def draw_boxes(img, bbox, names, object_id, identities=None, offset=(0, 0)):
         label = '{}{:d}'.format("", id) + ":" + '%s' % (obj_name)
         data_deque[id].appendleft(center)
 
-        if len(data_deque[id]) >= 150:
-            direction = get_direction(data_deque[id][0], data_deque[id][149])
-            object_speed = estimatespeed(data_deque[id][149], data_deque[id][0])
+        if len(data_deque[id]) >= 90:
+            direction = get_direction(data_deque[id][0], data_deque[id][89])
+            object_speed = estimatespeed(data_deque[id][89], data_deque[id][0])
             speed_line_queue[id].append(object_speed)
 
             if id not in boats_crossed_ids_line2 and id not in boats_crossed_ids_line1 and intersect(data_deque[id][0], data_deque[id][29], line1[0], line1[1]):
