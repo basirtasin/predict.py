@@ -403,7 +403,7 @@ class DetectionPredictor(BasePredictor):
         all_outputs = []
         log_string = ""
         if len(im.shape) == 3:
-            im = im[None]  # expand for batch dim
+            im = im[None]  # expand for batch dim, adds an additional dimension to the tensor, making it a 4D tensor.the shape of im becomes [1, height, width, channels], where 1 represents the batch size. Now the image is treated as a batch containing a single image.
         self.seen += 1
         im0 = im0.copy()
         if self.webcam:  # batch_size >= 1
